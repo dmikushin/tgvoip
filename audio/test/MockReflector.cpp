@@ -5,8 +5,10 @@
 //
 
 #include "MockReflector.h"
+
 #include <arpa/inet.h>
 #include <assert.h>
+#include <cstring>
 #include <stdio.h>
 
 using namespace tgvoip;

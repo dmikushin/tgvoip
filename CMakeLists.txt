@@ -8,10 +8,20 @@ set(CMAKE_BUILD_TYPE Debug)
 
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/td")
 
+# Prevent GoogleTest from overriding our compiler/linker options
+# when building with Visual Studio
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+# Add googletest directly to our build. This adds
+# the following targets: gtest, gtest_main, gmock
+# and gmock_main
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/googletest" EXCLUDE_FROM_ALL)
+
 # Search path for CMake include files.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 find_package(Opus REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # Enable C++ 11 support
 set(CMAKE_CXX_STANDARD 11)
@@ -38,6 +48,7 @@ set(SRC_FILES
 	audio/AudioInput.cpp
 	MediaStreamItf.cpp
 	audio/AudioOutput.cpp
+	audio/AudioIOCallback.cpp
 	OpusEncoder.cpp
 	JitterBuffer.cpp
 	OpusDecoder.cpp
@@ -416,6 +427,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC WEBRTC_POSIX)
 target_compile_definitions(${PROJECT_NAME} PUBLIC FIXED_POINT)
 target_compile_definitions(${PROJECT_NAME} PUBLIC WEBRTC_NS_FLOAT)
 
+# Needed for ${PROJECT_NAME}_test_audio
+target_compile_definitions(${PROJECT_NAME} PUBLIC TGVOIP_USE_CALLBACK_AUDIO_IO)
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
 target_link_libraries(${PROJECT_NAME} log OpenSLES)
 endif()
@@ -424,4 +438,20 @@ target_link_libraries(${PROJECT_NAME} ${OPUS_LIBRARIES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${OPUS_INCLUDE_DIRS}")
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/webrtc_dsp/")
+
+add_executable(${PROJECT_NAME}_test_audio
+	"${CMAKE_CURRENT_SOURCE_DIR}/audio/test/${PROJECT_NAME}_test_audio.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/audio/test/MockReflector.cpp")	
+target_include_directories(${PROJECT_NAME}_test_audio PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(${PROJECT_NAME}_test_audio PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/audio/test")
+target_include_directories(${PROJECT_NAME}_test_audio PUBLIC "${gtest_SOURCE_DIR}/include")
+target_include_directories(${PROJECT_NAME}_test_audio PUBLIC "${gmock_SOURCE_DIR}/include")
+target_include_directories(${PROJECT_NAME}_test_audio PUBLIC ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME}_test_audio ${PROJECT_NAME} ${OPENSSL_LIBRARIES} gtest)
+
+add_custom_command(TARGET ${PROJECT_NAME}_test_audio POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/audio/test/voip_test_input.wav" ${CMAKE_CURRENT_BINARY_DIR}
+	DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/audio/test/voip_test_input.wav"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	COMMENT "Copying sample audio file for ${PROJECT_NAME}_test_audio")
 
