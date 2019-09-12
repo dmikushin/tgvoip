@@ -11,7 +11,7 @@
 #include "../../threading.h"
 #include <pulse/pulseaudio.h>
 
-#define DECLARE_DL_FUNCTION(name) typeof(name)* _import_##name
+#define DECLARE_DL_FUNCTION(name) __typeof__(name)* _import_##name
 
 namespace tgvoip{
 namespace audio{

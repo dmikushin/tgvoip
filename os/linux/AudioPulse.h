@@ -14,7 +14,7 @@
 #include "AudioInputPulse.h"
 #include "AudioOutputPulse.h"
 
-#define DECLARE_DL_FUNCTION(name) static typeof(name)* _import_##name
+#define DECLARE_DL_FUNCTION(name) static __typeof__(name)* _import_##name
 
 namespace tgvoip{
 	namespace audio{
